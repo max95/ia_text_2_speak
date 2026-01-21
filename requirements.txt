@@ -2,3 +2,6 @@ piper-tts
 faster-whisper
 sounddevice
 scipy
+uvicorn
+fastapi
+python-multipart
