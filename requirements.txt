@@ -1,1 +1,4 @@
 piper-tts
+faster-whisper
+sounddevice
+scipy
