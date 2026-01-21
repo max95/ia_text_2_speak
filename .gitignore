@@ -1,0 +1,5 @@
+venv/
+.venv/
+.idea*
+app/tts/outputs
+*models
