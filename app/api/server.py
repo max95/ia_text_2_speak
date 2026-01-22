@@ -7,7 +7,8 @@ from app.core.store import TurnStore
 from app.core.worker import WorkerPool
 from app.core.pipeline import VoicePipeline
 from app.stt.whisper_asr import WhisperASR
-from app.llm.llamacpp_client import LlamaCppClient
+from app.llm.llm_client import LlamaCppClient
+from app.llm.llm_client import OpenAIChatClient
 from app.tts.piper_tts import PiperTTS
 
 
@@ -26,7 +27,8 @@ def create_app() -> FastAPI:
     store = TurnStore()
 
     asr = WhisperASR(model_name="small", language="fr")
-    llm = LlamaCppClient(base_url="http://127.0.0.1:8080")
+    #llm = LlamaCppClient(base_url="http://127.0.0.1:8080")
+    llm = OpenAIChatClient()
     tts = PiperTTS(model_path="app/tts/models/fr_FR-upmc-medium.onnx")
 
     pipeline = VoicePipeline(asr=asr, llm=llm, tts=tts)

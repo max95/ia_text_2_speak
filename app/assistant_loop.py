@@ -5,10 +5,13 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+import sounddevice as sd
+import soundfile as sf
 
 # Chemins déjà existants dans TON repo
 MIC_WAV = Path("app/stt/outputs/mic.wav")
 TTS_WAV = Path("app/tts/outputs/assistant.wav")
+JINGLE_WAV = Path("app/hotword_chime.wav")
 
 
 def wait_for_wake_word():
@@ -76,21 +79,27 @@ def run_pipeline():
     TTS_WAV.write_bytes(wav)
 
 
-def play_audio():
+def play_audio(path: str):
     print("[assistant] lecture réponse")
     if sys.platform == "darwin":
-        subprocess.run(["afplay", str(TTS_WAV)], check=False)
+        subprocess.run(["afplay", path], check=False)
     else:
-        subprocess.run(["aplay", str(TTS_WAV)], check=False)
+        subprocess.run(["aplay", path], check=False)
 
+def play_wav(path: str):
+    data, samplerate = sf.read(path, dtype="float32")
+    sd.play(data, samplerate)
+    sd.wait()  # bloque jusqu'à la fin de la lecture
 
 def main():
     print("=== Assistant vocal prêt ===")
     while True:
         wait_for_wake_word()
+        play_wav(str(JINGLE_WAV))
         record_question()
         run_pipeline()
-        play_audio()
+        #play_audio()
+        play_wav(str(TTS_WAV))
         print("[assistant] retour à l'écoute\n")
 
 

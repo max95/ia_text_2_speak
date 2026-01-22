@@ -4,7 +4,6 @@ from typing import Optional, List, Dict
 
 from .models import TurnStatus, Turn
 from app.stt.whisper_asr import WhisperASR
-from app.llm.llamacpp_client import LlamaCppClient
 from app.tts.piper_tts import PiperTTS
 
 
