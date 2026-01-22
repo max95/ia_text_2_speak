@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import time
 from typing import Optional, Tuple, List
-
+import sounddevice as sd
+import soundfile as sf
 from faster_whisper import WhisperModel
 
+
+def record_to_wav(path: str, seconds: float, sr: int = 16000) -> None:
+    audio = sd.rec(int(seconds * sr), samplerate=sr, channels=1, dtype="float32")
+    sd.wait()
+    sf.write(path, audio, sr)
 
 class WhisperASR:
     """
@@ -69,3 +75,12 @@ class WhisperASR:
         text = " ".join([p for p in parts if p]).strip()
         dt = time.time() - t0
         return text, dt
+
+if __name__ == "__main__":
+    wav = "app/stt/outputs/mic.wav"
+    print("[rec] enregistrement 4s...")
+    record_to_wav(wav, seconds=4.0, sr=16000)
+
+    asr = WhisperASR(model_name="small", device="cpu", compute_type="int8", language="fr")
+    text, dt = asr.transcribe(wav)
+    print(f"[asr] ({dt:.2f}s) -> {text}")
