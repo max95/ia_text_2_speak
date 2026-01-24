@@ -25,6 +25,10 @@ def wait_for_wake_word():
         check=True,
     )
 
+def record_to_wav(path: str, seconds: float, sr: int = 16000) -> None:
+    audio = sd.rec(int(seconds * sr), samplerate=sr, channels=1, dtype="float32")
+    sd.wait()
+    sf.write(path, audio, sr)
 
 def record_question():
     """
@@ -32,10 +36,11 @@ def record_question():
     Il doit produire mic.wav
     """
     print("[assistant] enregistrement question")
-    subprocess.run(
+    """    subprocess.run(
         [sys.executable, "app/stt/whisper_asr.py"],
         check=True,
-    )
+    )"""
+    record_to_wav(MIC_WAV, seconds=4.0, sr=16000)
     assert MIC_WAV.exists(), "mic.wav non généré"
 
 
