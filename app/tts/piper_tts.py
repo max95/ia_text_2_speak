@@ -12,9 +12,20 @@ class PiperTTS:
         self.piper_bin = piper_bin
         self.model_path = model_path
 
-    def synthesize(self, text: str, out_wav_path: str, speaker: Optional[int] = None) -> tuple[str, float]:
+    def synthesize(
+        self,
+        text: Optional[str],
+        out_wav_path: str,
+        speaker: Optional[int] = None,
+        text_path: Optional[str] = None,
+    ) -> tuple[str, float]:
         Path(os.path.dirname(out_wav_path)).mkdir(parents=True, exist_ok=True)
         t0 = time.time()
+
+        if text is None and text_path is not None:
+            text = Path(text_path).read_text(encoding="utf-8")
+        if text is None:
+            raise ValueError("text is required when text_path is not provided")
 
         cmd = [
             self.piper_bin,
