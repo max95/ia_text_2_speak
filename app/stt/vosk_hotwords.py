@@ -21,6 +21,9 @@ from vosk import Model, KaldiRecognizer
 MODEL_PATH = "app/stt/models/vosk-model-small-fr-0.22"
 SAMPLE_RATE = 16000
 HOTWORD = "test"
+BLOCK_SIZE = 4000
+HOTWORD_GRAMMAR = [HOTWORD, f"dis {HOTWORD}"]
+DETECTION_STREAK = 2
 
 # =====================
 # AUDIO CALLBACK
@@ -41,14 +44,15 @@ def main():
     print("Loading Vosk model...")
     model = Model(MODEL_PATH)
 
-    recognizer = KaldiRecognizer(model, SAMPLE_RATE)
-    recognizer.SetWords(True)
+    recognizer = KaldiRecognizer(model, SAMPLE_RATE, json.dumps(HOTWORD_GRAMMAR))
+    recognizer.SetWords(False)
 
     print("Listening... (say 'Test')")
 
+    detected_streak = 0
     with sd.RawInputStream(
         samplerate=SAMPLE_RATE,
-        blocksize=8000,
+        blocksize=BLOCK_SIZE,
         dtype="int16",
         channels=1,
         callback=audio_callback,
@@ -59,14 +63,22 @@ def main():
             if recognizer.AcceptWaveform(data):
                 result = json.loads(recognizer.Result())
                 text = result.get("text", "").lower()
+            else:
+                result = json.loads(recognizer.PartialResult())
+                text = result.get("partial", "").lower()
 
-                if text:
-                    print(f"Heard: {text}")
+            if text:
+                print(f"Heard: {text}")
 
-                if HOTWORD in text:
-                    print("\n🔥 HOTWORD DETECTED 🔥")
-                    print("Jarvis is listening...\n")
-                    break
+            if HOTWORD in text:
+                detected_streak += 1
+            else:
+                detected_streak = 0
+
+            if detected_streak >= DETECTION_STREAK:
+                print("\n🔥 HOTWORD DETECTED 🔥")
+                print("Jarvis is listening...\n")
+                break
 
 
 if __name__ == "__main__":
