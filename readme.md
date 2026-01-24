@@ -42,6 +42,7 @@ Ce projet met en place un assistant vocal **local** qui écoute un mot-clé, enr
 - **Principe :** le LLM peut sélectionner un outil parmi une liste déclarée, puis le pipeline appelle l’endpoint et renvoie le résultat au LLM pour produire la réponse finale.
 - **Configuration :** définir `TOOL_ENDPOINTS_JSON` avec la liste des outils disponibles (nom, description, url, méthode).
 - **Outil intégré :** `finance_price` est disponible par défaut pour récupérer un prix de marché (ex: BTCUSD).
+- **Outil intégré :** `train_line_l_departures` interroge les départs de la ligne L (Transilien). Nécessite `SNCF_API_KEY`.
 
 Exemple :
 ```bash
@@ -120,6 +121,8 @@ python app/assistant_loop.py
   - Télécharge le WAV de la réponse.
 - `GET /v1/finance/price?symbol=...`
   - Retourne le dernier prix disponible pour un symbole financier (source Stooq).
+- `GET /v1/trains/line-l/departures?stop_area_id=...&count=...`
+  - Retourne les prochains départs de la ligne L (Transilien) pour une gare SNCF.
 
 Cette API pilote la pipeline : **Whisper → LLM → Piper**.
 

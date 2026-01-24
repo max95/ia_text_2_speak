@@ -14,6 +14,7 @@ from app.llm.llm_client import OpenAIChatClient
 from app.tts.piper_tts import PiperTTS
 from app.tools.tool_registry import ToolEndpoint, ToolRegistry
 from app.api.routes_finance import fetch_finance_price
+from app.api.routes_trains import fetch_line_l_departures
 
 
 @dataclass
@@ -53,8 +54,10 @@ def create_app() -> FastAPI:
 
     from app.api.routes_turns import router as turns_router
     from app.api.routes_finance import router as finance_router
+    from app.api.routes_trains import router as trains_router
     app.include_router(turns_router)
     app.include_router(finance_router)
+    app.include_router(trains_router)
 
     return app
 
@@ -104,6 +107,27 @@ def _build_tool_registry() -> ToolRegistry | None:
             handler=_handle_finance_tool,
         )
     )
+    endpoints.append(
+        ToolEndpoint(
+            name="train_line_l_departures",
+            description="Retourne les prochains départs de la ligne L (Transilien) pour une gare IDF.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "stop_area_id": {
+                        "type": "string",
+                        "description": "Identifiant stop_area SNCF (ex: stop_area:IDF:SA:8754523).",
+                    },
+                    "count": {
+                        "type": "integer",
+                        "description": "Nombre de départs à retourner (1-20).",
+                    },
+                },
+                "required": ["stop_area_id"],
+            },
+            handler=_handle_line_l_tool,
+        )
+    )
     if not endpoints:
         return None
     return ToolRegistry(endpoints)
@@ -114,3 +138,16 @@ def _handle_finance_tool(arguments: dict) -> dict:
     if isinstance(arguments, dict):
         symbol = str(arguments.get("symbol") or "").strip()
     return fetch_finance_price(symbol)
+
+
+def _handle_line_l_tool(arguments: dict) -> dict:
+    stop_area_id = ""
+    count = 5
+    if isinstance(arguments, dict):
+        stop_area_id = str(arguments.get("stop_area_id") or "").strip()
+        if arguments.get("count") is not None:
+            try:
+                count = int(arguments.get("count"))
+            except (TypeError, ValueError):
+                count = 5
+    return fetch_line_l_departures(stop_area_id, count)
