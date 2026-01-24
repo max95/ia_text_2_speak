@@ -39,6 +39,22 @@ class LlamaCppClient:
         dt = time.time() - t0
         return text, dt
 
+    def chat_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.2,
+        max_tokens: int = 300,
+        model: Optional[str] = None,
+    ) -> Tuple[str, List[Dict[str, Any]], float]:
+        text, dt = self.chat(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            model=model,
+        )
+        return text, [], dt
+
 
 class OpenAIChatClient:
     """
@@ -74,6 +90,41 @@ class OpenAIChatClient:
         text = (resp.choices[0].message.content or "").strip()
         dt = time.time() - t0
         return text, dt
+
+    def chat_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.2,
+        max_tokens: int = 300,
+        model: Optional[str] = None,
+    ) -> Tuple[str, List[Dict[str, Any]], float]:
+        t0 = time.time()
+
+        resp = self.client.chat.completions.create(
+            model=model or self.default_model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            tools=tools,
+            tool_choice="auto",
+            timeout=self.timeout_s,
+        )
+
+        message = resp.choices[0].message
+        text = (message.content or "").strip()
+        tool_calls: List[Dict[str, Any]] = []
+        if message.tool_calls:
+            for call in message.tool_calls:
+                tool_calls.append(
+                    {
+                        "id": call.id,
+                        "name": call.function.name,
+                        "arguments": call.function.arguments,
+                    }
+                )
+        dt = time.time() - t0
+        return text, tool_calls, dt
 
 
 # Exemple: chargez votre .env au point d’entrée (main/orchestrator), pas dans les classes.
