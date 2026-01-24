@@ -2,18 +2,21 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional
 
 import requests
+from fastapi import HTTPException
 
 
 @dataclass(frozen=True)
 class ToolEndpoint:
     name: str
     description: str
-    url: str
+    url: str | None = None
     method: str = "POST"
     timeout_s: float = 20.0
+    parameters: Dict[str, Any] | None = None
+    handler: Callable[[Mapping[str, Any]], Dict[str, Any]] | None = None
 
 
 class ToolRegistry:
@@ -25,22 +28,23 @@ class ToolRegistry:
     def tool_specs(self) -> List[Dict[str, Any]]:
         tools: List[Dict[str, Any]] = []
         for endpoint in self._endpoints.values():
+            parameters = endpoint.parameters or {
+                "type": "object",
+                "properties": {
+                    "payload": {
+                        "type": "object",
+                        "description": "Données JSON à envoyer au service.",
+                    }
+                },
+                "required": [],
+            }
             tools.append(
                 {
                     "type": "function",
                     "function": {
                         "name": endpoint.name,
                         "description": endpoint.description,
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "payload": {
-                                    "type": "object",
-                                    "description": "Données JSON à envoyer au service.",
-                                }
-                            },
-                            "required": [],
-                        },
+                        "parameters": parameters,
                     },
                 }
             )
@@ -52,6 +56,30 @@ class ToolRegistry:
             return {
                 "ok": False,
                 "error": f"tool_not_found: {tool_name}",
+            }
+
+        if endpoint.handler:
+            try:
+                return {
+                    "ok": True,
+                    "data": endpoint.handler(arguments),
+                }
+            except HTTPException as exc:
+                return {
+                    "ok": False,
+                    "error": exc.detail,
+                    "status_code": exc.status_code,
+                }
+            except Exception as exc:
+                return {
+                    "ok": False,
+                    "error": f"handler_failed: {exc}",
+                }
+
+        if not endpoint.url:
+            return {
+                "ok": False,
+                "error": f"tool_missing_url: {tool_name}",
             }
 
         payload = arguments.get("payload") if isinstance(arguments, Mapping) else None

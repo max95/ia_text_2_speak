@@ -41,6 +41,7 @@ Ce projet met en place un assistant vocal **local** qui écoute un mot-clé, enr
 - **Objectif :** déclencher un appel API vers un outil après la réponse du LLM, lorsque c’est pertinent.
 - **Principe :** le LLM peut sélectionner un outil parmi une liste déclarée, puis le pipeline appelle l’endpoint et renvoie le résultat au LLM pour produire la réponse finale.
 - **Configuration :** définir `TOOL_ENDPOINTS_JSON` avec la liste des outils disponibles (nom, description, url, méthode).
+- **Outil intégré :** `finance_price` est disponible par défaut pour récupérer un prix de marché (ex: BTCUSD).
 
 Exemple :
 ```bash

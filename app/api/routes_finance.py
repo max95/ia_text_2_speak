@@ -10,8 +10,7 @@ from fastapi import APIRouter, HTTPException
 router = APIRouter()
 
 
-@router.get("/v1/finance/price")
-def get_finance_price(symbol: str):
+def fetch_finance_price(symbol: str) -> dict[str, Any]:
     if not symbol.strip():
         raise HTTPException(status_code=400, detail="symbol is required")
 
@@ -40,3 +39,8 @@ def get_finance_price(symbol: str):
         "close": row.get("Close"),
         "volume": row.get("Volume"),
     }
+
+
+@router.get("/v1/finance/price")
+def get_finance_price(symbol: str):
+    return fetch_finance_price(symbol)
