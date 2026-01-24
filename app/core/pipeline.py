@@ -4,6 +4,7 @@ from typing import Optional, List, Dict
 
 from .models import TurnStatus, Turn
 from app.stt.whisper_asr import WhisperASR
+from app.llm.llm_client import OpenAIChatClient
 from app.tts.piper_tts import PiperTTS
 
 
@@ -11,7 +12,7 @@ class VoicePipeline:
     def __init__(
         self,
         asr: WhisperASR,
-        llm: LlamaCppClient,
+        llm: OpenAIChatClient,
         tts: PiperTTS,
         system_prompt: str = "Tu es un assistant vocal local, concis et utile. Réponds en français.",
     ) -> None:
