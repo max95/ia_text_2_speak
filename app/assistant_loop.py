@@ -8,6 +8,8 @@ from pathlib import Path
 import sounddevice as sd
 import soundfile as sf
 
+from tts.piper_tts import PiperTTS
+
 # Chemins déjà existants dans TON repo
 MIC_WAV = Path("app/stt/outputs/mic.wav")
 TTS_WAV = Path("app/tts/outputs/assistant.wav")
@@ -91,6 +93,15 @@ def play_audio(path: str):
     else:
         subprocess.run(["aplay", path], check=False)
 
+def play_synthesize(text: str, wav_path: str = "audio/out.wav") -> str:
+    tts = PiperTTS(
+        piper_bin="piper",  # ou chemin absolu si nécessaire
+        model_path="app/tts/models/fr_FR-upmc-medium.onnx",
+    )
+    out_path, dt = tts.synthesize(text=text, out_wav_path=wav_path)
+    play_wav(out_path)
+    return out_path
+
 def play_wav(path: str):
     data, samplerate = sf.read(path, dtype="float32")
     sd.play(data, samplerate)
@@ -100,7 +111,8 @@ def main():
     print("=== Assistant vocal prêt ===")
     while True:
         wait_for_wake_word()
-        play_wav(str(JINGLE_WAV))
+        #play_wav(str(JINGLE_WAV))
+        play_synthesize("Que puis-je faire pour vous ?")
         record_question()
         run_pipeline()
         #play_audio()
