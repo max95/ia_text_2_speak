@@ -8,7 +8,7 @@ from typing import Optional
 
 
 class PiperTTS:
-    def __init__(self, piper_bin: str = "piper", model_path: str = "app/tts/models/fr_FR-gilles-low.onnx") -> None:
+    def __init__(self, piper_bin: str = "piper", model_path: str = "app/tts/models/fr_FR-upmc-medium.onnx") -> None:
         self.piper_bin = piper_bin
         self.model_path = model_path
 
