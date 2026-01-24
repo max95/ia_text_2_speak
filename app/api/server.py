@@ -51,7 +51,9 @@ def create_app() -> FastAPI:
         await worker.stop()
 
     from app.api.routes_turns import router as turns_router
+    from app.api.routes_finance import router as finance_router
     app.include_router(turns_router)
+    app.include_router(finance_router)
 
     return app
 

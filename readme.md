@@ -117,6 +117,8 @@ python app/assistant_loop.py
   - Statut (`status`), transcript, réponse texte, URL audio si disponible.
 - `GET /v1/turns/{turn_id}/audio`
   - Télécharge le WAV de la réponse.
+- `GET /v1/finance/price?symbol=...`
+  - Retourne le dernier prix disponible pour un symbole financier (source Stooq).
 
 Cette API pilote la pipeline : **Whisper → LLM → Piper**.
 
