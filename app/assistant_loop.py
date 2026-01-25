@@ -11,6 +11,7 @@ import sounddevice as sd
 import soundfile as sf
 
 from tts.piper_tts import PiperTTS
+from stt.speaker_id import identify
 
 # Chemins déjà existants dans TON repo
 MIC_WAV = Path("app/stt/outputs/mic.wav")
@@ -18,6 +19,7 @@ QUESTION_WAV = Path("app/stt/outputs/question.wav")
 HOTWORD_CONTEXT_WAV = Path("app/stt/outputs/hotword_context.wav")
 TTS_WAV = Path("app/tts/outputs/assistant.wav")
 JINGLE_WAV = Path("app/hotword_chime.wav")
+SPEAKER_PROFILES_DIR = Path("app/stt/speaker_profiles")
 
 def select_microphone() -> None:
     devices = sd.query_devices()
@@ -118,6 +120,12 @@ def record_question():
     assert MIC_WAV.exists(), "mic.wav non généré"
 
 
+def identify_speaker() -> tuple[str | None, float | None]:
+    if not MIC_WAV.exists():
+        return None, None
+    return identify(MIC_WAV, SPEAKER_PROFILES_DIR)
+
+
 def run_pipeline(session_id: str | None = None) -> tuple[str, str | None]:
     """
     Appelle TA pipeline FastAPI existante
@@ -207,6 +215,9 @@ def main():
         follow_up = True
         while follow_up:
             record_question()
+            speaker_name, speaker_score = identify_speaker()
+            if speaker_name:
+                print(f"[assistant] locuteur: {speaker_name} (score={speaker_score:.3f})")
             session_id, assistant_text = run_pipeline(session_id=session_id)
             #play_audio()
             play_wav(str(TTS_WAV))
