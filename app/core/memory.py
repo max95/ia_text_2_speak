@@ -106,11 +106,10 @@ class SQLiteMemory:
                 """
                 SELECT content, embedding
                 FROM memory_vectors
-                WHERE session_id = ?
                 ORDER BY id DESC
                 LIMIT ?
                 """,
-                (session_id, candidate_limit),
+                (candidate_limit,),
             )
             rows = cursor.fetchall()
         scored: List[tuple[float, str]] = []
