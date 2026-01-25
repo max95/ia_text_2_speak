@@ -2,14 +2,44 @@ from __future__ import annotations
 
 import time
 from typing import Optional, Tuple, List
+import numpy as np
 import sounddevice as sd
 import soundfile as sf
 from faster_whisper import WhisperModel
 
 
-def record_to_wav(path: str, seconds: float, sr: int = 16000) -> None:
-    audio = sd.rec(int(seconds * sr), samplerate=sr, channels=1, dtype="float32")
-    sd.wait()
+def record_to_wav(
+    path: str,
+    max_seconds: float,
+    sr: int = 16000,
+    silence_duration: float = 1.0,
+    silence_threshold: float = 0.01,
+    block_duration: float = 0.1,
+) -> None:
+    max_samples = int(max_seconds * sr)
+    block_samples = int(block_duration * sr)
+    silence_samples = int(silence_duration * sr)
+    frames: List[np.ndarray] = []
+    total_samples = 0
+    silent_run = 0
+    has_speech = False
+
+    with sd.InputStream(samplerate=sr, channels=1, dtype="float32") as stream:
+        while total_samples < max_samples:
+            data, _ = stream.read(block_samples)
+            frames.append(data.copy())
+            total_samples += len(data)
+
+            rms = float(np.sqrt(np.mean(np.square(data))))
+            if rms >= silence_threshold:
+                has_speech = True
+                silent_run = 0
+            elif has_speech:
+                silent_run += len(data)
+                if silent_run >= silence_samples:
+                    break
+
+    audio = np.concatenate(frames, axis=0) if frames else np.zeros((0, 1), dtype="float32")
     sf.write(path, audio, sr)
 
 class WhisperASR:
@@ -78,8 +108,8 @@ class WhisperASR:
 
 if __name__ == "__main__":
     wav = "app/stt/outputs/mic.wav"
-    print("[rec] enregistrement 4s...")
-    record_to_wav(wav, seconds=4.0, sr=16000)
+    print("[rec] enregistrement (arrêt au silence)...")
+    record_to_wav(wav, max_seconds=10.0, sr=16000)
 
     asr = WhisperASR(model_name="small", device="cpu", compute_type="int8", language="fr")
     text, dt = asr.transcribe(wav)

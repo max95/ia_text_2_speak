@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
@@ -52,9 +53,38 @@ def wait_for_wake_word():
         check=True,
     )
 
-def record_to_wav(path: str, seconds: float, sr: int = 16000) -> None:
-    audio = sd.rec(int(seconds * sr), samplerate=sr, channels=1, dtype="float32")
-    sd.wait()
+def record_to_wav(
+    path: str,
+    max_seconds: float,
+    sr: int = 16000,
+    silence_duration: float = 1.0,
+    silence_threshold: float = 0.01,
+    block_duration: float = 0.1,
+) -> None:
+    max_samples = int(max_seconds * sr)
+    block_samples = int(block_duration * sr)
+    silence_samples = int(silence_duration * sr)
+    frames: list[np.ndarray] = []
+    total_samples = 0
+    silent_run = 0
+    has_speech = False
+
+    with sd.InputStream(samplerate=sr, channels=1, dtype="float32") as stream:
+        while total_samples < max_samples:
+            data, _ = stream.read(block_samples)
+            frames.append(data.copy())
+            total_samples += len(data)
+
+            rms = float(np.sqrt(np.mean(np.square(data))))
+            if rms >= silence_threshold:
+                has_speech = True
+                silent_run = 0
+            elif has_speech:
+                silent_run += len(data)
+                if silent_run >= silence_samples:
+                    break
+
+    audio = np.concatenate(frames, axis=0) if frames else np.zeros((0, 1), dtype="float32")
     sf.write(path, audio, sr)
 
 def record_question():
@@ -62,12 +92,12 @@ def record_question():
     Lance ton script d'enregistrement micro existant.
     Il doit produire mic.wav
     """
-    print("[assistant] enregistrement question")
+    print("[assistant] enregistrement question (arrêt au silence)")
     """    subprocess.run(
         [sys.executable, "app/stt/whisper_asr.py"],
         check=True,
     )"""
-    record_to_wav(MIC_WAV, seconds=4.0, sr=16000)
+    record_to_wav(MIC_WAV, max_seconds=10.0, sr=16000)
     assert MIC_WAV.exists(), "mic.wav non généré"
 
 
