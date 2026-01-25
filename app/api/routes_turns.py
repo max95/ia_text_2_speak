@@ -40,6 +40,8 @@ def get_turn(turn_id: str):
     if turn.audio_out_path and os.path.exists(turn.audio_out_path):
         audio_url = f"/v1/turns/{turn_id}/audio"
 
+    print(turn)
+
     return {
         "turn_id": turn.turn_id,
         "session_id": turn.session_id,
