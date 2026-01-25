@@ -5,5 +5,4 @@ scipy
 uvicorn
 fastapi
 python-multipart
-speechbrain
-torchaudio
+pyannote.audio

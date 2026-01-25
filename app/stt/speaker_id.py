@@ -6,9 +6,7 @@ from pathlib import Path
 from typing import Iterable
 
 import numpy as np
-import torch
-import torchaudio
-from speechbrain.pretrained import EncoderClassifier
+from pyannote.audio import Inference
 
 
 def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -33,15 +31,14 @@ def _iter_profiles(profile_dir: Path) -> Iterable[tuple[str, np.ndarray]]:
     return profiles
 
 
-def _load_wav(path: Path) -> torch.Tensor:
-    wav, _ = torchaudio.load(path)
-    return wav
+def _embed(wav_path: Path) -> np.ndarray:
+    inference = Inference("pyannote/embedding", window="whole")
+    embedding = inference(str(wav_path))
+    return np.array(embedding)
 
 
 def enroll(profile_name: str, wav_path: Path, profile_dir: Path) -> Path:
-    wav = _load_wav(wav_path)
-    encoder = EncoderClassifier.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
-    embedding = encoder.encode_batch(wav).squeeze(0).mean(dim=0).cpu().numpy()
+    embedding = _embed(wav_path)
     profile_path = profile_dir / f"{profile_name}.npy"
     _save_profile(profile_path, embedding)
     return profile_path
@@ -52,9 +49,7 @@ def identify(wav_path: Path, profile_dir: Path) -> tuple[str | None, float | Non
     if not profiles:
         return None, None
 
-    wav = _load_wav(wav_path)
-    encoder = EncoderClassifier.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
-    embedding = encoder.encode_batch(wav).squeeze(0).mean(dim=0).cpu().numpy()
+    embedding = _embed(wav_path)
 
     best_name = None
     best_score = None

@@ -146,7 +146,7 @@ python app/stt/test_stt_mic.py --seconds 6
 python app/stt/whisper_test.py
 ```
 
-### Speaker ID (SpeechBrain)
+### Speaker ID (pyannote.audio)
 Pour créer un profil locuteur :
 ```bash
 python app/stt/speaker_id.py app/stt/outputs/question.wav --enroll prenom
