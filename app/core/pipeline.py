@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Optional, List, Dict, Any
 
 from .models import TurnStatus, Turn
@@ -49,16 +50,29 @@ class VoicePipeline:
         turn.status = TurnStatus.generating
         history = self._history.setdefault(turn.session_id, [])
         messages: List[Dict[str, Any]] = [{"role": "system", "content": self.system_prompt}]
+        rag_snippets: List[Dict[str, str]] = []
         if self.memory:
-            rag_snippets = self.memory.search(turn.session_id, transcript or "", limit=self.max_history_turns)
-            if rag_snippets:
-                rag_text = "\n- " + "\n- ".join(rag_snippets)
+            rag_items = self.memory.search(turn.session_id, transcript or "", limit=self.max_history_turns)
+            if rag_items:
+                rag_snippets = [
+                    {"content": content, "role": role, "created_at": created_at}
+                    for content, role, created_at in rag_items
+                ]
+                rag_text = "\n- " + "\n- ".join(
+                    f"[{item['created_at']}] ({item['role']}) {item['content']}" for item in rag_snippets
+                )
                 messages.append(
                     {
                         "role": "system",
                         "content": f"Mémoire long terme pertinente:{rag_text}",
                     }
                 )
+        logging.info(
+            "[rag] query=%s results=%s candidates=%s",
+            (transcript or "")[:120],
+            len(rag_snippets),
+            self.max_history_turns,
+        )
         messages += history + [{"role": "user", "content": transcript or ""}]
         tool_calls: List[Dict[str, Any]] = []
         if self.tool_registry:

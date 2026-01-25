@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from openai import OpenAI
 
@@ -144,7 +144,13 @@ class SQLiteMemory:
         rows.reverse()
         return [{"role": role, "content": content} for role, content in rows]
 
-    def search(self, session_id: str, query: str, limit: int = 6, candidate_limit: int = 200) -> List[str]:
+    def search(
+        self,
+        session_id: str,
+        query: str,
+        limit: int = 6,
+        candidate_limit: int = 200,
+    ) -> List[Tuple[str, str, str]]:
         if not query or limit <= 0:
             return []
         query_embedding = self._embed(query)
@@ -153,7 +159,7 @@ class SQLiteMemory:
         with self._connect() as conn:
             cursor = conn.execute(
                 """
-                SELECT content, embedding
+                SELECT content, role, created_at, embedding
                 FROM memory_vectors
                 ORDER BY id DESC
                 LIMIT ?
@@ -161,14 +167,14 @@ class SQLiteMemory:
                 (candidate_limit,),
             )
             rows = cursor.fetchall()
-        scored: List[tuple[float, str]] = []
+        scored: List[tuple[float, str, str, str]] = []
         query_norm = _vector_norm(query_embedding)
-        for content, embedding_json in rows:
+        for content, role, created_at, embedding_json in rows:
             embedding = json.loads(embedding_json)
             score = _cosine_similarity(query_embedding, embedding, query_norm)
-            scored.append((score, content))
+            scored.append((score, content, role, created_at))
         scored.sort(key=lambda item: item[0], reverse=True)
-        return [content for _, content in scored[:limit]]
+        return [(content, role, created_at) for _, content, role, created_at in scored[:limit]]
 
 
 def _vector_norm(vector: List[float]) -> float:
