@@ -46,7 +46,7 @@ def record_question():
     assert MIC_WAV.exists(), "mic.wav non généré"
 
 
-def run_pipeline():
+def run_pipeline(session_id: str | None = None) -> str:
     """
     Appelle TA pipeline FastAPI existante
     (Whisper -> LLM -> Piper)
@@ -55,13 +55,20 @@ def run_pipeline():
 
     import requests
 
+    params = {}
+    if session_id:
+        params["session_id"] = session_id
+
     r = requests.post(
         "http://127.0.0.1:8000/v1/turns",
         files={"audio": MIC_WAV.open("rb")},
+        params=params,
         timeout=180,
     )
     r.raise_for_status()
-    turn_id = r.json()["turn_id"]
+    response_payload = r.json()
+    turn_id = response_payload["turn_id"]
+    session_id = response_payload["session_id"]
 
     # poll
     while True:
@@ -84,6 +91,7 @@ def run_pipeline():
 
     TTS_WAV.parent.mkdir(parents=True, exist_ok=True)
     TTS_WAV.write_bytes(wav)
+    return session_id
 
 
 def play_audio(path: str):
@@ -109,12 +117,13 @@ def play_wav(path: str):
 
 def main():
     print("=== Assistant vocal prêt ===")
+    session_id: str | None = None
     while True:
         wait_for_wake_word()
         #play_wav(str(JINGLE_WAV))
         play_synthesize("Que puis-je faire pour vous ?")
         record_question()
-        run_pipeline()
+        session_id = run_pipeline(session_id=session_id)
         #play_audio()
         play_wav(str(TTS_WAV))
         print("[assistant] retour à l'écoute\n")
