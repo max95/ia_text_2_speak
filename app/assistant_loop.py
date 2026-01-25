@@ -15,6 +15,31 @@ MIC_WAV = Path("app/stt/outputs/mic.wav")
 TTS_WAV = Path("app/tts/outputs/assistant.wav")
 JINGLE_WAV = Path("app/hotword_chime.wav")
 
+def select_microphone() -> None:
+    devices = sd.query_devices()
+    input_devices = [
+        (index, device)
+        for index, device in enumerate(devices)
+        if device.get("max_input_channels", 0) > 0
+    ]
+    if not input_devices:
+        print("[assistant] aucun micro détecté, utilisation par défaut")
+        return
+
+    print("=== Microphones disponibles ===")
+    for index, device in input_devices:
+        print(f"{index}: {device.get('name')}")
+
+    while True:
+        choice = input("Choisissez l'index du micro: ").strip()
+        if choice.isdigit():
+            device_index = int(choice)
+            if any(idx == device_index for idx, _ in input_devices):
+                sd.default.device = (device_index, None)
+                print(f"[assistant] micro sélectionné: {device_index}")
+                return
+        print("Index invalide, réessayez.")
+
 
 def wait_for_wake_word():
     """
@@ -124,6 +149,7 @@ def play_wav(path: str):
     sd.wait()  # bloque jusqu'à la fin de la lecture
 
 def main():
+    select_microphone()
     print("=== Assistant vocal prêt ===")
     session_id: str | None = None
     while True:
