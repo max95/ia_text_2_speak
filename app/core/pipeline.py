@@ -18,12 +18,14 @@ class VoicePipeline:
         tts: PiperTTS,
         tool_registry: Optional[ToolRegistry] = None,
         system_prompt: str = "Tu es un assistant vocal local, concis et utile. Réponds en français.",
+        max_history_turns: int = 6,
     ) -> None:
         self.asr = asr
         self.llm = llm
         self.tts = tts
         self.tool_registry = tool_registry
         self.system_prompt = system_prompt
+        self.max_history_turns = max_history_turns
 
         # MVP: historique en mémoire par session
         self._history: dict[str, List[Dict[str, str]]] = {}
@@ -110,6 +112,9 @@ class VoicePipeline:
         # push history (MVP)
         history.append({"role": "user", "content": transcript or ""})
         history.append({"role": "assistant", "content": turn.assistant_text or ""})
+        max_messages = self.max_history_turns * 2
+        if len(history) > max_messages:
+            history[:] = history[-max_messages:]
 
         # 3) TTS
         turn.status = TurnStatus.synthesizing
