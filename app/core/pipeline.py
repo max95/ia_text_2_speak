@@ -52,7 +52,11 @@ class VoicePipeline:
         messages: List[Dict[str, Any]] = [{"role": "system", "content": self.system_prompt}]
         rag_snippets: List[Dict[str, str]] = []
         if self.memory:
-            rag_items = self.memory.search(turn.session_id, transcript or "", limit=self.max_history_turns)
+            if not (transcript or "").strip():
+                logging.info("[rag] skipped (empty transcript)")
+                rag_items = []
+            else:
+                rag_items = self.memory.search(turn.session_id, transcript or "", limit=self.max_history_turns)
             if rag_items:
                 rag_snippets = [
                     {"content": content, "role": role, "created_at": created_at}
@@ -73,6 +77,8 @@ class VoicePipeline:
             len(rag_snippets),
             self.max_history_turns,
         )
+        if self.memory and not rag_snippets:
+            logging.info("[rag] no results found")
         messages += history + [{"role": "user", "content": transcript or ""}]
         tool_calls: List[Dict[str, Any]] = []
         if self.tool_registry:

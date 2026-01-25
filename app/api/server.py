@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import logging
 import os
 from fastapi import FastAPI
 
@@ -28,6 +29,7 @@ deps: Deps  # rempli au startup
 
 
 def create_app() -> FastAPI:
+    logging.basicConfig(level=logging.INFO)
     app = FastAPI(title="ia_text_2_speak")
 
     store = TurnStore()

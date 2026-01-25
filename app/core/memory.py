@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from pathlib import Path
 from typing import List, Dict, Tuple
 
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 class SQLiteMemory:
     def __init__(
@@ -54,19 +57,27 @@ class SQLiteMemory:
     def _embed(self, text: str) -> List[float]:
         if not text:
             return []
-        response = self.client.embeddings.create(
-            model=self.embedding_model,
-            input=text,
-        )
+        try:
+            response = self.client.embeddings.create(
+                model=self.embedding_model,
+                input=text,
+            )
+        except Exception:
+            logger.exception("memory embedding failed")
+            return []
         return list(response.data[0].embedding)
 
     def _embed_batch(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        response = self.client.embeddings.create(
-            model=self.embedding_model,
-            input=texts,
-        )
+        try:
+            response = self.client.embeddings.create(
+                model=self.embedding_model,
+                input=texts,
+            )
+        except Exception:
+            logger.exception("memory batch embedding failed")
+            return []
         return [list(item.embedding) for item in response.data]
 
     def _backfill_embeddings(self, batch_size: int = 25) -> None:
@@ -152,9 +163,11 @@ class SQLiteMemory:
         candidate_limit: int = 200,
     ) -> List[Tuple[str, str, str]]:
         if not query or limit <= 0:
+            logger.info("memory search skipped (empty query or limit)")
             return []
         query_embedding = self._embed(query)
         if not query_embedding:
+            logger.info("memory search skipped (no query embedding)")
             return []
         with self._connect() as conn:
             cursor = conn.execute(
