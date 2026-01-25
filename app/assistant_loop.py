@@ -99,7 +99,7 @@ def run_pipeline(session_id: str | None = None) -> tuple[str, str | None]:
 def is_follow_up_question(text: str | None) -> bool:
     if not text:
         return False
-    return text.strip().endswith("?")
+    return "?" in text
 
 
 def play_audio(path: str):
