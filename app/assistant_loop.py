@@ -202,7 +202,7 @@ def main():
     while True:
         wait_for_wake_word()
         #play_wav(str(JINGLE_WAV))
-        play_synthesize("Que puis-je faire pour vous ?")
+        #play_synthesize("Que puis-je faire pour vous ?")
         follow_up = True
         while follow_up:
             record_question()
