@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import time
 import uuid
 
@@ -26,6 +26,8 @@ class Turn:
     transcript: Optional[str] = None
     assistant_text: Optional[str] = None
     audio_out_path: Optional[str] = None
+    tool_calls: List[Dict[str, Any]] = field(default_factory=list)
+    tool_results: List[Dict[str, Any]] = field(default_factory=list)
 
     error: Optional[str] = None
 

@@ -46,6 +46,8 @@ def get_turn(turn_id: str):
         "status": turn.status,
         "transcript": turn.transcript,
         "assistant_text": turn.assistant_text,
+        "tool_calls": turn.tool_calls,
+        "tool_results": turn.tool_results,
         "audio_url": audio_url,
         "error": turn.error,
         "timings": turn.timings,

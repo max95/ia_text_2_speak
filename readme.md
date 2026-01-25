@@ -37,6 +37,21 @@ Ce projet met en place un assistant vocal **local** qui écoute un mot-clé, enr
   - **OpenAI** : **rapidité**, **qualité**, **simplicité** (clé API) — c’est **le choix par défaut** dans ce code.
 - Code : `app/llm/llm_client.py`.
 
+### 3bis) Outils (tool calling)
+- **Objectif :** déclencher un appel API vers un outil après la réponse du LLM, lorsque c’est pertinent.
+- **Principe :** le LLM peut sélectionner un outil parmi une liste déclarée, puis le pipeline appelle l’endpoint et renvoie le résultat au LLM pour produire la réponse finale.
+- **Configuration :** définir `TOOL_ENDPOINTS_JSON` avec la liste des outils disponibles (nom, description, url, méthode).
+- **Outil intégré :** `finance_price` est disponible par défaut pour récupérer un prix de marché (ex: BTCUSD).
+- **Outil intégré :** `train_line_l_departures` interroge les départs de la ligne L (Transilien). Nécessite `SNCF_API_KEY`.
+
+Exemple :
+```bash
+export TOOL_ENDPOINTS_JSON='[
+  {"name": "calendar_create", "description": "Créer un évènement", "url": "http://127.0.0.1:9000/calendar", "method": "POST"},
+  {"name": "weather_lookup", "description": "Récupérer la météo", "url": "http://127.0.0.1:9000/weather", "method": "POST"}
+]'
+```
+
 ### 4) Synthèse vocale (Piper TTS)
 - **Ce que fait la brique :** transforme le texte en audio (WAV) pour la réponse.
 - **Avantages techniques :**
@@ -104,6 +119,10 @@ python app/assistant_loop.py
   - Statut (`status`), transcript, réponse texte, URL audio si disponible.
 - `GET /v1/turns/{turn_id}/audio`
   - Télécharge le WAV de la réponse.
+- `GET /v1/finance/price?symbol=...`
+  - Retourne le dernier prix disponible pour un symbole financier (source Stooq).
+- `GET /v1/trains/line-l/departures?stop_area_id=...&count=...`
+  - Retourne les prochains départs de la ligne L (Transilien) pour une gare SNCF.
 
 Cette API pilote la pipeline : **Whisper → LLM → Piper**.
 
