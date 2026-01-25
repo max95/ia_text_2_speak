@@ -46,7 +46,7 @@ def record_question():
     assert MIC_WAV.exists(), "mic.wav non généré"
 
 
-def run_pipeline(session_id: str | None = None) -> str:
+def run_pipeline(session_id: str | None = None) -> tuple[str, str | None]:
     """
     Appelle TA pipeline FastAPI existante
     (Whisper -> LLM -> Piper)
@@ -71,6 +71,7 @@ def run_pipeline(session_id: str | None = None) -> str:
     session_id = response_payload["session_id"]
 
     # poll
+    assistant_text: str | None = None
     while True:
         time.sleep(0.5)
         s = requests.get(
@@ -79,6 +80,7 @@ def run_pipeline(session_id: str | None = None) -> str:
         ).json()
         if s["status"] == "done":
             audio_url = s["audio_url"]
+            assistant_text = s.get("assistant_text")
             break
         if s["status"] == "error":
             raise RuntimeError(s.get("error"))
@@ -91,7 +93,13 @@ def run_pipeline(session_id: str | None = None) -> str:
 
     TTS_WAV.parent.mkdir(parents=True, exist_ok=True)
     TTS_WAV.write_bytes(wav)
-    return session_id
+    return session_id, assistant_text
+
+
+def is_follow_up_question(text: str | None) -> bool:
+    if not text:
+        return False
+    return "?" in text
 
 
 def play_audio(path: str):
@@ -122,10 +130,17 @@ def main():
         wait_for_wake_word()
         #play_wav(str(JINGLE_WAV))
         play_synthesize("Que puis-je faire pour vous ?")
-        record_question()
-        session_id = run_pipeline(session_id=session_id)
-        #play_audio()
-        play_wav(str(TTS_WAV))
+        follow_up = True
+        while follow_up:
+            record_question()
+            session_id, assistant_text = run_pipeline(session_id=session_id)
+            #play_audio()
+            play_wav(str(TTS_WAV))
+            if is_follow_up_question(assistant_text):
+                print("[assistant] follow-up sans hotword")
+                follow_up = True
+            else:
+                follow_up = False
         print("[assistant] retour à l'écoute\n")
 
 
