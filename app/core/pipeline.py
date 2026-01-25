@@ -79,6 +79,8 @@ class VoicePipeline:
         )
         if self.memory and not rag_snippets:
             logging.info("[rag] no results found")
+        if rag_snippets:
+            logging.info("[rag] snippets=%s", rag_snippets[:3])
         messages += history + [{"role": "user", "content": transcript or ""}]
         tool_calls: List[Dict[str, Any]] = []
         if self.tool_registry:

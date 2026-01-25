@@ -180,6 +180,7 @@ class SQLiteMemory:
                 (candidate_limit,),
             )
             rows = cursor.fetchall()
+        logger.info("memory search candidates=%s", len(rows))
         scored: List[tuple[float, str, str, str]] = []
         query_norm = _vector_norm(query_embedding)
         for content, role, created_at, embedding_json in rows:
