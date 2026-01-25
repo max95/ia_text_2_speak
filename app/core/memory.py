@@ -12,12 +12,14 @@ class SQLiteMemory:
         self,
         db_path: str = "app/data/memory.sqlite",
         embedding_model: str = "text-embedding-3-small",
+        backfill_batch_size: int = 25,
     ) -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.embedding_model = embedding_model
         self.client = OpenAI()
         self._init_db()
+        self._backfill_embeddings(batch_size=backfill_batch_size)
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.db_path)
@@ -57,6 +59,53 @@ class SQLiteMemory:
             input=text,
         )
         return list(response.data[0].embedding)
+
+    def _embed_batch(self, texts: List[str]) -> List[List[float]]:
+        if not texts:
+            return []
+        response = self.client.embeddings.create(
+            model=self.embedding_model,
+            input=texts,
+        )
+        return [list(item.embedding) for item in response.data]
+
+    def _backfill_embeddings(self, batch_size: int = 25) -> None:
+        if batch_size <= 0:
+            return
+        while True:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    """
+                    SELECT id, session_id, role, content
+                    FROM memories
+                    WHERE id NOT IN (SELECT memory_id FROM memory_vectors)
+                    ORDER BY id ASC
+                    LIMIT ?
+                    """,
+                    (batch_size,),
+                )
+                rows = cursor.fetchall()
+            if not rows:
+                break
+            texts = [content for _, _, _, content in rows if content]
+            embeddings = self._embed_batch(texts)
+            if not embeddings:
+                break
+            embed_iter = iter(embeddings)
+            with self._connect() as conn:
+                for memory_id, session_id, role, content in rows:
+                    if not content:
+                        continue
+                    embedding = next(embed_iter, [])
+                    if not embedding:
+                        continue
+                    conn.execute(
+                        """
+                        INSERT INTO memory_vectors (memory_id, session_id, role, content, embedding)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (memory_id, session_id, role, content, json.dumps(embedding)),
+                    )
 
     def append(self, session_id: str, role: str, content: str) -> None:
         if not content:
