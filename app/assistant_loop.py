@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+import shutil
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
@@ -13,6 +14,8 @@ from tts.piper_tts import PiperTTS
 
 # Chemins déjà existants dans TON repo
 MIC_WAV = Path("app/stt/outputs/mic.wav")
+QUESTION_WAV = Path("app/stt/outputs/question.wav")
+HOTWORD_CONTEXT_WAV = Path("app/stt/outputs/hotword_context.wav")
 TTS_WAV = Path("app/tts/outputs/assistant.wav")
 JINGLE_WAV = Path("app/hotword_chime.wav")
 
@@ -97,7 +100,21 @@ def record_question():
         [sys.executable, "app/stt/whisper_asr.py"],
         check=True,
     )"""
-    record_to_wav(MIC_WAV, max_seconds=10.0, sr=16000)
+    record_to_wav(QUESTION_WAV, max_seconds=10.0, sr=16000)
+    assert QUESTION_WAV.exists(), "question.wav non généré"
+
+    if HOTWORD_CONTEXT_WAV.exists():
+        context_audio, context_sr = sf.read(HOTWORD_CONTEXT_WAV, dtype="int16")
+        question_audio, question_sr = sf.read(QUESTION_WAV, dtype="int16")
+        if context_sr == question_sr:
+            audio = np.concatenate([context_audio, question_audio], axis=0)
+            sf.write(MIC_WAV, audio, question_sr, subtype="PCM_16")
+        else:
+            print("[assistant] sample rate mismatch, utilisation de la question seule")
+            shutil.copyfile(QUESTION_WAV, MIC_WAV)
+    else:
+        shutil.copyfile(QUESTION_WAV, MIC_WAV)
+
     assert MIC_WAV.exists(), "mic.wav non généré"
 
 
