@@ -130,15 +130,17 @@ def main():
         wait_for_wake_word()
         #play_wav(str(JINGLE_WAV))
         play_synthesize("Que puis-je faire pour vous ?")
-        record_question()
-        session_id, assistant_text = run_pipeline(session_id=session_id)
-        #play_audio()
-        play_wav(str(TTS_WAV))
-        if is_follow_up_question(assistant_text):
-            print("[assistant] follow-up sans hotword")
+        follow_up = True
+        while follow_up:
             record_question()
-            session_id, _ = run_pipeline(session_id=session_id)
+            session_id, assistant_text = run_pipeline(session_id=session_id)
+            #play_audio()
             play_wav(str(TTS_WAV))
+            if is_follow_up_question(assistant_text):
+                print("[assistant] follow-up sans hotword")
+                follow_up = True
+            else:
+                follow_up = False
         print("[assistant] retour à l'écoute\n")
 
 
