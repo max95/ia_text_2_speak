@@ -4,6 +4,7 @@ import json
 from typing import Optional, List, Dict, Any
 
 from .models import TurnStatus, Turn
+from .memory import SQLiteMemory
 from app.stt.whisper_asr import WhisperASR
 from app.llm.llm_client import OpenAIChatClient
 from app.tts.piper_tts import PiperTTS
@@ -19,6 +20,7 @@ class VoicePipeline:
         tool_registry: Optional[ToolRegistry] = None,
         system_prompt: str = "Tu es un assistant vocal local, concis et utile. Réponds en français.",
         max_history_turns: int = 6,
+        memory: Optional[SQLiteMemory] = None,
     ) -> None:
         self.asr = asr
         self.llm = llm
@@ -26,8 +28,9 @@ class VoicePipeline:
         self.tool_registry = tool_registry
         self.system_prompt = system_prompt
         self.max_history_turns = max_history_turns
+        self.memory = memory
 
-        # MVP: historique en mémoire par session
+        # MVP: historique en mémoire par session (fallback si pas de DB)
         self._history: dict[str, List[Dict[str, str]]] = {}
 
     def run(self, turn: Turn) -> Turn:
@@ -45,9 +48,18 @@ class VoicePipeline:
         # 2) LLM
         turn.status = TurnStatus.generating
         history = self._history.setdefault(turn.session_id, [])
-        messages: List[Dict[str, Any]] = [{"role": "system", "content": self.system_prompt}] + history + [
-            {"role": "user", "content": transcript or ""}
-        ]
+        messages: List[Dict[str, Any]] = [{"role": "system", "content": self.system_prompt}]
+        if self.memory:
+            rag_snippets = self.memory.search(turn.session_id, transcript or "", limit=self.max_history_turns)
+            if rag_snippets:
+                rag_text = "\n- " + "\n- ".join(rag_snippets)
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": f"Mémoire long terme pertinente:{rag_text}",
+                    }
+                )
+        messages += history + [{"role": "user", "content": transcript or ""}]
         tool_calls: List[Dict[str, Any]] = []
         if self.tool_registry:
             answer, tool_calls, dt_llm = self.llm.chat_with_tools(
@@ -110,6 +122,9 @@ class VoicePipeline:
             turn.assistant_text = answer
 
         # push history (MVP)
+        if self.memory:
+            self.memory.append(turn.session_id, "user", transcript or "")
+            self.memory.append(turn.session_id, "assistant", turn.assistant_text or "")
         history.append({"role": "user", "content": transcript or ""})
         history.append({"role": "assistant", "content": turn.assistant_text or ""})
         max_messages = self.max_history_turns * 2

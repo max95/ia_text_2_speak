@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from app.core.store import TurnStore
 from app.core.worker import WorkerPool
 from app.core.pipeline import VoicePipeline
+from app.core.memory import SQLiteMemory
 from app.stt.whisper_asr import WhisperASR
 from app.llm.llm_client import LlamaCppClient
 from app.llm.llm_client import OpenAIChatClient
@@ -37,7 +38,8 @@ def create_app() -> FastAPI:
     tts = PiperTTS(model_path="app/tts/models/fr_FR-upmc-medium.onnx")
 
     tool_registry = _build_tool_registry()
-    pipeline = VoicePipeline(asr=asr, llm=llm, tts=tts, tool_registry=tool_registry)
+    memory = SQLiteMemory()
+    pipeline = VoicePipeline(asr=asr, llm=llm, tts=tts, tool_registry=tool_registry, memory=memory)
 
     worker = WorkerPool(store=store, pipeline=pipeline, concurrency=1)
 
