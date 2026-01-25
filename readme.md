@@ -64,9 +64,10 @@ export TOOL_ENDPOINTS_JSON='[
 
 1. **Vosk** attend le mot-clé.
 2. Lecture d’un **jingle** pour indiquer que l’assistant écoute.
-3. **Whisper** transcrit la question.
-4. **LLM** génère la réponse.
-5. **Piper** synthétise la réponse en audio.
+3. (Optionnel) **Speaker ID** associe la question à un locuteur connu.
+4. **Whisper** transcrit la question.
+5. **LLM** génère la réponse.
+6. **Piper** synthétise la réponse en audio.
 
 Ce flux est orchestré dans `app/assistant_loop.py` et la partie pipeline est gérée côté API FastAPI (`app/api/server.py`).
 
@@ -143,6 +144,17 @@ python app/stt/test_stt_mic.py --seconds 6
 - Test avec un fichier WAV existant :
 ```bash
 python app/stt/whisper_test.py
+```
+
+### Speaker ID (pyannote.audio)
+Pour créer un profil locuteur :
+```bash
+python app/stt/speaker_id.py app/stt/outputs/question.wav --enroll prenom
+```
+
+Pour identifier un locuteur :
+```bash
+python app/stt/speaker_id.py app/stt/outputs/question.wav
 ```
 
 ### LLM local (llama.cpp)
