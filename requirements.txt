@@ -5,4 +5,5 @@ scipy
 uvicorn
 fastapi
 python-multipart
-resemblyzer
+speechbrain
+torchaudio
