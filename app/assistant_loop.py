@@ -124,6 +124,7 @@ def run_pipeline(session_id: str | None = None) -> tuple[str, str | None]:
     (Whisper -> LLM -> Piper)
     """
     print("[assistant] appel pipeline FastAPI")
+    play_wav(str(JINGLE_WAV))
 
     import requests
 
